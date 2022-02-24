@@ -5,7 +5,8 @@ using UnityEngine;
 public class PlayerTargeting : MonoBehaviour
 {
     public TargetableObject target { get; private set; }
-    public Transform boneShoulderLeft, boneShoulderRight;
+    public PointAt boneShoulderLeft, boneShoulderRight;
+    CameraController cam;
     float cooldownScan = 0f;
     public float visionDist = 10f;
     float cooldownAttack = 0;
@@ -20,6 +21,8 @@ public class PlayerTargeting : MonoBehaviour
     void Start()
     {
         playerWantsToAim = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        cam = FindObjectOfType<CameraController>();
     }
 
     // Update is called once per frame
@@ -38,15 +41,25 @@ public class PlayerTargeting : MonoBehaviour
         {
             if(target != null)
             {
-                if(!CanSeeThing(target))
+                Vector3 toTarget = target.transform.position - transform.position;
+                toTarget.y = 0;
+
+                if(toTarget.magnitude > 3 && !CanSeeThing(target))
                 {
                     target = null;
                 }
             }
             if (cooldownScan <= 0) ScanForTargets();
         }
+        else
+        {
+            target = null;
+        }
 
         cooldownAttack -= Time.deltaTime;
+
+        if (boneShoulderLeft) boneShoulderLeft.target = target ? target.transform : null;
+        if (boneShoulderRight) boneShoulderRight.target = target ? target.transform : null;
         DoAttack();
     }
 
@@ -63,8 +76,10 @@ public class PlayerTargeting : MonoBehaviour
         //TODO: spawn projectiles
         //or hitscan/take health away from target
 
-        boneShoulderLeft.localEulerAngles += new Vector3(-30, 0, 0);
-        boneShoulderRight.localEulerAngles += new Vector3(-30, 0, 0);
+        boneShoulderLeft.transform.localEulerAngles += new Vector3(-30, 0, 0);
+        boneShoulderRight.transform.localEulerAngles += new Vector3(-30, 0, 0);
+
+        if(cam) cam.Shake(.25f);
     }
 
     void ScanForTargets()
@@ -102,6 +117,33 @@ public class PlayerTargeting : MonoBehaviour
 
         //is within so-many degrees of forward direction?
         if (alignment < .4f) return false;
+
+        //check for occlusion
+        Ray ray = new Ray();
+        ray.origin = transform.position;
+        ray.direction = vToThing;
+        Debug.DrawRay(ray.origin, ray.direction * visionDist, Color.red);
+        RaycastHit hit;
+
+        if(Physics.Raycast(ray, out hit, visionDist))
+        {
+            bool canSee = false;
+            Transform xform = hit.transform;
+            do
+            {
+                if (xform.gameObject == thing.gameObject)
+                {
+                    canSee = true;
+                    break;
+                }
+                xform = xform.parent;
+            } while (xform != null);
+
+            if(!canSee)
+            {
+                return false;
+            }
+        }
 
         return true;
     }

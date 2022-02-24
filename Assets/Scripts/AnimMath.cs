@@ -33,6 +33,8 @@ public static class AnimMath
 
     public static Quaternion Lerp(Quaternion a, Quaternion b, float p, bool allowExtrapolation = false)
     {
+        //return Quaternion.Lerp(a, b, p);
+        b = WrapQuaternion(a, b);
         Quaternion rot = Quaternion.identity;
 
         rot.x = Lerp(a.x, b.x, p, allowExtrapolation);
@@ -77,6 +79,22 @@ public static class AnimMath
     {
         while (baseAngle > angleToBeWrapped + 180) angleToBeWrapped += 360;
         while (baseAngle < angleToBeWrapped - 180) angleToBeWrapped -= 360;
+
+        return angleToBeWrapped;
+    }
+
+    public static Quaternion WrapQuaternion(Quaternion baseAngle, Quaternion angleToBeWrapped)
+    {
+        float alignment = Quaternion.Dot(baseAngle, angleToBeWrapped);
+
+        if(alignment < 0)
+        {
+            //TODO: wrap angle
+            angleToBeWrapped.x *= -1;
+            angleToBeWrapped.y *= -1;
+            angleToBeWrapped.z *= -1;
+            angleToBeWrapped.w *= -1;
+        }
 
         return angleToBeWrapped;
     }

@@ -6,17 +6,21 @@ using UnityEngine;
 public class PointAt : MonoBehaviour
 {
     //public Axis aimOrientation;
-    PlayerTargeting playerTargeting;
+    //PlayerTargeting playerTargeting;
+    public Transform target;
     Quaternion startRotation;
     Quaternion goalRotation;
     public bool lockAxisX = false;
     public bool lockAxisY = false;
     public bool lockAxisZ = false;
+    public float weightAxisX = 0;
+    public float weightAxisY = 0;
+    public float weightAxisZ = 0;
 
     // Start is called before the first frame update
     void Start()
     {
-        playerTargeting = GetComponentInParent<PlayerTargeting>();
+        //playerTargeting = GetComponentInParent<PlayerTargeting>();//comment this out while refactoring
         startRotation = transform.localRotation;
     }
 
@@ -28,32 +32,29 @@ public class PointAt : MonoBehaviour
 
     void TurnTowardsTarget()
     {
-        if(playerTargeting && playerTargeting.target && playerTargeting.playerWantsToAim)
+        //if(playerTargeting && playerTargeting.target && playerTargeting.playerWantsToAim)//comment this out while refactoring
+        if(target != null)
         {
-            Vector3 vToTarget = playerTargeting.target.transform.position - transform.position;
-            //Vector3 fromVector = Vector3.forward;
-            //transform.rotation = Quaternion.LookRotation(vToTarget);//, Vector3.up);
+            Vector3 vToTarget = target.position - transform.position;
+            vToTarget.Normalize();
 
             Quaternion worldRot = Quaternion.LookRotation(vToTarget, Vector3.up);
-            Quaternion prevRot = transform.rotation;
+            Quaternion localRot = worldRot;
 
-            Vector3 eulerBefore = transform.localEulerAngles;
-            transform.rotation = worldRot;
-            Vector3 eulerAfter = transform.localEulerAngles;
-            transform.rotation = prevRot;
-
-            /*Quaternion localRot = worldRot;
             if(transform.parent)
             {
+                //convert to local space
                 localRot = Quaternion.Inverse(transform.parent.rotation) * worldRot;
-            }*/
+            }
 
-            if (lockAxisX) eulerAfter.x = eulerBefore.x;
-            if (lockAxisY) eulerAfter.y = eulerBefore.y;
-            if (lockAxisZ) eulerAfter.z = eulerBefore.z;
+            Vector3 euler = localRot.eulerAngles;
+            if (lockAxisX) euler.x = startRotation.eulerAngles.x;
+            if (lockAxisY) euler.y = startRotation.eulerAngles.y;
+            if (lockAxisZ) euler.z = startRotation.eulerAngles.z;
 
-            goalRotation = Quaternion.Euler(eulerAfter);
+            localRot.eulerAngles = euler;
 
+            goalRotation = localRot;
         }
         else
         {

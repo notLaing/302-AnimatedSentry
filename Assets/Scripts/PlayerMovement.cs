@@ -5,9 +5,10 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
-    public Transform boneLegLeft, boneLegRight;
+    public Transform boneLegLeft, boneLegRight, boneHip, boneSpine;
     public Camera cam;
     CharacterController pawn;
+    PlayerTargeting targetingScript;
     public float walkSpeed = 5f;
     [Range(-10, -1)]
     public float gravity = -1f;
@@ -26,6 +27,7 @@ public class PlayerMovement : MonoBehaviour
     void Start()
     {
         pawn = GetComponent<CharacterController>();
+        targetingScript = GetComponent<PlayerTargeting>();
     }
 
     // Update is called once per frame
@@ -36,8 +38,22 @@ public class PlayerMovement : MonoBehaviour
         float v = Input.GetAxis("Vertical");
         float h = Input.GetAxis("Horizontal");
 
+        bool playerIsAiming = (targetingScript && targetingScript.playerWantsToAim && targetingScript.target);
+
+        if(playerIsAiming)
+        {
+            Vector3 toTarget = targetingScript.target.transform.position - transform.position;
+            toTarget.Normalize();
+            Quaternion worldRot = Quaternion.LookRotation(toTarget);
+            Vector3 euler = worldRot.eulerAngles;
+            euler.x = 0;
+            euler.z = 0;
+            worldRot.eulerAngles = euler;
+
+            transform.rotation = AnimMath.Ease(transform.rotation, worldRot, .01f);
+        }
         //rotate to match camera rotation
-        if (cam && (v != 0 || h != 0))
+        else if (cam && (v != 0 || h != 0))
         {
             float playerYaw = transform.eulerAngles.y;
             float camYaw = cam.transform.eulerAngles.y;
@@ -71,9 +87,13 @@ public class PlayerMovement : MonoBehaviour
         {
             cooldownJumpWindow = .5f;
             velocityVertical = 0;
+            WalkAnimation();
+        }
+        else
+        {
+            AirAnimation();
         }
 
-        WalkAnimation();
     }
 
     void WalkAnimation()
@@ -90,5 +110,18 @@ public class PlayerMovement : MonoBehaviour
         //bone alignment will mess up axis
         boneLegLeft.localRotation = Quaternion.AngleAxis(wave, axis);
         boneLegRight.localRotation = Quaternion.AngleAxis(-wave, axis);
+
+        //hips
+        if (boneHip)
+        {
+            float walkAmount = axis.magnitude;
+            float offsetY = Mathf.Cos(Time.time * speed) * walkAmount * .05f;
+            boneHip.localPosition = new Vector3(0, offsetY, 0);
+        }
+    }
+
+    void AirAnimation()
+    {
+        //
     }
 }
