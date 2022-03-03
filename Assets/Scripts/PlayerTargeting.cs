@@ -8,7 +8,7 @@ public class PlayerTargeting : MonoBehaviour
     public PointAt boneShoulderLeft, boneShoulderRight;
     CameraController cam;
     float cooldownScan = 0f;
-    public float visionDist = 10f;
+    public float visionDist = 25f;
     float cooldownAttack = 0;
     [Range(1, 20)]
     public int roundsPerSecond = 5;
@@ -58,7 +58,7 @@ public class PlayerTargeting : MonoBehaviour
 
         cooldownAttack -= Time.deltaTime;
 
-        if (boneShoulderLeft) boneShoulderLeft.target = target ? target.transform : null;
+        //if (boneShoulderLeft) boneShoulderLeft.target = target ? target.transform : null;
         if (boneShoulderRight) boneShoulderRight.target = target ? target.transform : null;
         DoAttack();
     }
@@ -75,8 +75,9 @@ public class PlayerTargeting : MonoBehaviour
 
         //TODO: spawn projectiles
         //or hitscan/take health away from target
+        target.GetComponent<EnemyController>().health--;
 
-        boneShoulderLeft.transform.localEulerAngles += new Vector3(-30, 0, 0);
+        //boneShoulderLeft.transform.localEulerAngles += new Vector3(-30, 0, 0);
         boneShoulderRight.transform.localEulerAngles += new Vector3(-30, 0, 0);
 
         if(cam) cam.Shake(.25f);

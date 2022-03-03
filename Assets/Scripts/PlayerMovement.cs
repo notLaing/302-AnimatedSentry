@@ -15,6 +15,8 @@ public class PlayerMovement : MonoBehaviour
     Vector3 inputDir;
     float velocityVertical = 0f;
     float cooldownJumpWindow = 0f;
+    float deathAnimTime = 2f;
+    public int health = 3;
     public bool isGrounded
     {
         get
@@ -33,6 +35,13 @@ public class PlayerMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if(health <= 0)
+        {
+            AnimateDeath();
+            deathAnimTime -= Time.deltaTime;
+            return;
+        }
+
         if (cooldownJumpWindow > 0) cooldownJumpWindow -= Time.deltaTime;
         //lateral movement
         float v = Input.GetAxis("Vertical");
@@ -123,5 +132,15 @@ public class PlayerMovement : MonoBehaviour
     void AirAnimation()
     {
         //
+    }
+
+    void AnimateDeath()
+    {
+        if (deathAnimTime <= 0f) gameObject.SetActive(false);
+    }
+
+    public void TakeDamage()
+    {
+        --health;
     }
 }

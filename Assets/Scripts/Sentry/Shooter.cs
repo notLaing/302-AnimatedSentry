@@ -9,6 +9,7 @@ public class Shooter : MonoBehaviour
     EnemyController sentryScript;
     PointAt pointScript;
     public float shootTime = 5f;
+    bool canShoot = true;
 
     // Start is called before the first frame update
     void Start()
@@ -27,26 +28,31 @@ public class Shooter : MonoBehaviour
         } while (xform != null);
     }
 
-    void FixedUpdate()
+    void Update()
     {
-        float distToPlayer = Vector3.SqrMagnitude(pointScript.target.position - transform.position);
-
-        //time ticks if < 10 units away
-        if (distToPlayer <= 100f)
+        if (pointScript.target)
         {
-            shootTime -= Time.fixedDeltaTime;
-            if (shootTime <= 0f)
-            {
-                //shoot
-                Shoot();
+            float distToPlayer = Vector3.SqrMagnitude(pointScript.target.position - transform.position);
 
-                //reset time
-                shootTime += 5f;
+            //time ticks if < 30 units away
+            if (distToPlayer <= 900f)
+            {
+                shootTime -= Time.deltaTime;
+                /*if (shootTime <= 0f)
+                {
+                    //shoot
+                    if (canShoot) Shoot();
+                    canShoot = false;
+
+                    //reset time (moved to EnemyController)
+                    //shootTime += 5f;
+                }
+                else canShoot = true;*/
             }
         }
     }
 
-    void Shoot()
+    public void Shoot()
     {
         Instantiate(projectile, projectileSpawner.position, projectileSpawner.rotation);
     }
