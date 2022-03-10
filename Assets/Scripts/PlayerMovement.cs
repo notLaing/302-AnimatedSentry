@@ -5,7 +5,8 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
-    public Transform boneLegLeft, boneLegRight, boneHip, boneSpine;
+    public Transform boneLegLeft, boneLegRight, boneHip, boneSpine1, boneSpine2, boneNeck;//boneHip parents all other bones
+    Vector3 boneLegLeftStart, boneLegRightStart, boneHipStart, boneSpine1Start, boneSpine2Start, boneNeckStart;
     public Camera cam;
     CharacterController pawn;
     PlayerTargeting targetingScript;
@@ -21,15 +22,27 @@ public class PlayerMovement : MonoBehaviour
     {
         get
         {
-            return pawn.isGrounded || cooldownJumpWindow > 0;
+            //return pawn.isGrounded || cooldownJumpWindow > 0;//
+            return CheckGrounded();
         }
     }
+    bool fromIdle = true;
+
+    public float idleSpeed = .01f;
+    public float idleSpace = .1f;
 
     // Start is called before the first frame update
     void Start()
     {
         pawn = GetComponent<CharacterController>();
         targetingScript = GetComponent<PlayerTargeting>();
+
+        boneSpine1Start = boneSpine1.localPosition;
+        boneSpine2Start = boneSpine2.localPosition;
+        boneLegLeftStart = boneLegLeft.localPosition;
+        boneLegRightStart = boneLegRight.localPosition;
+        boneHipStart = boneHip.localPosition;
+        boneNeckStart = boneNeck.localPosition;
     }
 
     // Update is called once per frame
@@ -51,6 +64,12 @@ public class PlayerMovement : MonoBehaviour
 
         if(playerIsAiming)
         {
+            if (fromIdle)
+            {
+                print("aiming calls it");
+                fromIdle = false;
+                BreakIdle();
+            }
             Vector3 toTarget = targetingScript.target.transform.position - transform.position;
             toTarget.Normalize();
             Quaternion worldRot = Quaternion.LookRotation(toTarget);
@@ -92,17 +111,82 @@ public class PlayerMovement : MonoBehaviour
         //move player
         Vector3 moveAmount = inputDir * walkSpeed + Vector3.up * velocityVertical;
         pawn.Move(moveAmount * Time.deltaTime);
-        if (pawn.isGrounded)
+        /*if(pawn.isGrounded)
+        {
+            cooldownJumpWindow = .5f;
+            velocityVertical = 0;
+
+            if (inputDir == Vector3.zero && !playerIsAiming)
+            {
+                fromIdle = true;
+                AnimateIdle();
+            }
+            else
+            {
+                if (fromIdle)
+                {
+                    print("walking calls it");
+                    fromIdle = false;
+                    BreakIdle();
+                }
+                WalkAnimation();
+            }
+        }
+        else
+        {
+            if(fromIdle)
+            {
+                print("air calls it???");
+                fromIdle = false;
+                BreakIdle();
+            }
+            AirAnimation();
+        }*/
+        if (isGrounded)
         {
             cooldownJumpWindow = .5f;
             velocityVertical = 0;
             WalkAnimation();
+            print("Grounded");
         }
         else
         {
             AirAnimation();
+            print("Airborne");
         }
 
+    }
+
+    bool CheckGrounded()
+    {
+        RaycastHit hit;
+        // Does the ray intersect any objects excluding the player layer
+        if (Physics.Raycast(transform.position - new Vector3(0, 1, 0), Vector3.down, out hit, .1f))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    void AnimateIdle()
+    {
+        //float idleSpeed = .01f;
+        //float idleSpace = .1f;
+        float wave = Mathf.Sin(Time.time * idleSpeed) * idleSpace;
+
+        boneSpine1.localPosition = boneSpine1Start + new Vector3(0, wave, 0);
+        boneSpine2.localPosition = boneSpine2Start + new Vector3(0, wave, 0);
+        boneNeck.localPosition = boneNeckStart + new Vector3(0, wave, 0);
+    }
+
+    void BreakIdle()
+    {
+        boneSpine1.localPosition = boneSpine1Start;
+        boneSpine2.localPosition = boneSpine2Start;
+        //boneLegLeft.localPosition = boneLegLeftStart;
+        //boneLegRight.localPosition = boneLegRightStart;
+        //boneHip.localPosition = boneHipStart;
+        boneNeck.localPosition = boneNeckStart;
     }
 
     void WalkAnimation()
