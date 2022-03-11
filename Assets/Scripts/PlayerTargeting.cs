@@ -6,6 +6,7 @@ public class PlayerTargeting : MonoBehaviour
 {
     public TargetableObject target { get; private set; }
     public PointAt boneShoulderLeft, boneShoulderRight;
+    public ParticleSystem flash;
     CameraController cam;
     float cooldownScan = 0f;
     public float visionDist = 25f;
@@ -75,6 +76,7 @@ public class PlayerTargeting : MonoBehaviour
 
         //TODO: spawn projectiles
         //or hitscan/take health away from target
+        flash.Play();
         target.GetComponent<EnemyController>().health--;
 
         //boneShoulderLeft.transform.localEulerAngles += new Vector3(-30, 0, 0);

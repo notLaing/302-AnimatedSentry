@@ -6,7 +6,10 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     public Transform boneLegLeft, boneLegRight, boneHip, boneSpine1, boneSpine2, boneNeck;//boneHip parents all other bones
-    Vector3 boneLegLeftStart, boneLegRightStart, boneHipStart, boneSpine1Start, boneSpine2Start, boneNeckStart;
+    public GameObject partArmLeft, partArmRight, partUpperTorso, partLowerTorso, partHips, partHead, partLegLeft, partLegRight;
+    GameObject[] bodyParts = new GameObject[8];
+    Vector3 boneHipStart, boneSpine1Start, boneSpine2Start, boneNeckStart;
+    Quaternion boneLegLeftStart, boneLegRightStart;
     public Camera cam;
     CharacterController pawn;
     PlayerTargeting targetingScript;
@@ -16,7 +19,7 @@ public class PlayerMovement : MonoBehaviour
     Vector3 inputDir;
     float velocityVertical = 0f;
     float cooldownJumpWindow = 0f;
-    float deathAnimTime = 2f;
+    float deathAnimTime = 5f;
     public int health = 3;
     public bool isGrounded
     {
@@ -27,6 +30,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
     bool fromIdle = true;
+    bool dieOnce = false;
 
     public float idleSpeed = .01f;
     public float idleSpace = .1f;
@@ -39,10 +43,19 @@ public class PlayerMovement : MonoBehaviour
 
         boneSpine1Start = boneSpine1.localPosition;
         boneSpine2Start = boneSpine2.localPosition;
-        boneLegLeftStart = boneLegLeft.localPosition;
-        boneLegRightStart = boneLegRight.localPosition;
+        boneLegLeftStart = boneLegLeft.localRotation;
+        boneLegRightStart = boneLegRight.localRotation;
         boneHipStart = boneHip.localPosition;
         boneNeckStart = boneNeck.localPosition;
+
+        bodyParts[0] = partArmLeft;
+        bodyParts[1] = partArmRight;
+        bodyParts[2] = partUpperTorso;
+        bodyParts[3] = partLowerTorso;
+        bodyParts[4] = partHips;
+        bodyParts[5] = partHead;
+        bodyParts[6] = partLegLeft;
+        bodyParts[7] = partLegRight;
     }
 
     // Update is called once per frame
@@ -66,7 +79,6 @@ public class PlayerMovement : MonoBehaviour
         {
             if (fromIdle)
             {
-                print("aiming calls it");
                 fromIdle = false;
                 BreakIdle();
             }
@@ -111,7 +123,7 @@ public class PlayerMovement : MonoBehaviour
         //move player
         Vector3 moveAmount = inputDir * walkSpeed + Vector3.up * velocityVertical;
         pawn.Move(moveAmount * Time.deltaTime);
-        /*if(pawn.isGrounded)
+        if(isGrounded)
         {
             cooldownJumpWindow = .5f;
             velocityVertical = 0;
@@ -125,7 +137,6 @@ public class PlayerMovement : MonoBehaviour
             {
                 if (fromIdle)
                 {
-                    print("walking calls it");
                     fromIdle = false;
                     BreakIdle();
                 }
@@ -136,25 +147,11 @@ public class PlayerMovement : MonoBehaviour
         {
             if(fromIdle)
             {
-                print("air calls it???");
                 fromIdle = false;
                 BreakIdle();
             }
             AirAnimation();
-        }*/
-        if (isGrounded)
-        {
-            cooldownJumpWindow = .5f;
-            velocityVertical = 0;
-            WalkAnimation();
-            print("Grounded");
         }
-        else
-        {
-            AirAnimation();
-            print("Airborne");
-        }
-
     }
 
     bool CheckGrounded()
@@ -170,10 +167,10 @@ public class PlayerMovement : MonoBehaviour
 
     void AnimateIdle()
     {
-        //float idleSpeed = .01f;
-        //float idleSpace = .1f;
-        float wave = Mathf.Sin(Time.time * idleSpeed) * idleSpace;
+        boneLegLeft.localRotation = boneLegLeftStart;
+        boneLegRight.localRotation = boneLegRightStart;
 
+        float wave = Mathf.Abs(Mathf.Sin(Time.time * idleSpeed)) * idleSpace;
         boneSpine1.localPosition = boneSpine1Start + new Vector3(0, wave, 0);
         boneSpine2.localPosition = boneSpine2Start + new Vector3(0, wave, 0);
         boneNeck.localPosition = boneNeckStart + new Vector3(0, wave, 0);
@@ -183,8 +180,8 @@ public class PlayerMovement : MonoBehaviour
     {
         boneSpine1.localPosition = boneSpine1Start;
         boneSpine2.localPosition = boneSpine2Start;
-        //boneLegLeft.localPosition = boneLegLeftStart;
-        //boneLegRight.localPosition = boneLegRightStart;
+        //boneLegLeft.localRotation = boneLegLeftStart;
+        //boneLegRight.localRotation = boneLegRightStart;
         //boneHip.localPosition = boneHipStart;
         boneNeck.localPosition = boneNeckStart;
     }
@@ -209,7 +206,7 @@ public class PlayerMovement : MonoBehaviour
         {
             float walkAmount = axis.magnitude;
             float offsetY = Mathf.Cos(Time.time * speed) * walkAmount * .05f;
-            boneHip.localPosition = new Vector3(0, offsetY, 0);
+            boneHip.localPosition = new Vector3(0, boneHipStart.y + offsetY, 0);
         }
     }
 
@@ -221,6 +218,23 @@ public class PlayerMovement : MonoBehaviour
     void AnimateDeath()
     {
         if (deathAnimTime <= 0f) gameObject.SetActive(false);
+
+        if (!dieOnce)
+        {
+            dieOnce = true;
+
+            //set the capsule collider and character controller to inactive so the head can move
+            gameObject.GetComponent<CapsuleCollider>().enabled = false;
+            gameObject.GetComponent<CharacterController>().enabled = false;
+
+            //set all the rigid bodies to use gravity, all the body part box colliders to active, and addForce
+            foreach (GameObject b in bodyParts)
+            {
+                b.GetComponent<BoxCollider>().enabled = true;
+                b.GetComponent<Rigidbody>().useGravity = true;
+                b.GetComponent<Rigidbody>().AddForce(Random.insideUnitSphere * 500f);
+            }
+        }
     }
 
     public void TakeDamage()
