@@ -13,7 +13,7 @@ public class PlayerMovement : MonoBehaviour
     public Camera cam;
     CharacterController pawn;
     PlayerTargeting targetingScript;
-    public float walkSpeed = 5f;
+    public float walkSpeed = 10f;
     [Range(-10, -1)]
     public float gravity = -1f;
     Vector3 inputDir;
@@ -115,7 +115,7 @@ public class PlayerMovement : MonoBehaviour
             if(wantsToJump)
             {
                 cooldownJumpWindow = 0f;
-                velocityVertical = 5;
+                velocityVertical = 7;
             }
         }
         velocityVertical += gravity * Time.deltaTime;
@@ -160,6 +160,7 @@ public class PlayerMovement : MonoBehaviour
         // Does the ray intersect any objects excluding the player layer
         if (Physics.Raycast(transform.position - new Vector3(0, 1, 0), Vector3.down, out hit, .1f))
         {
+            if (hit.transform.tag == "Death") health = 0;
             return true;
         }
         return false;

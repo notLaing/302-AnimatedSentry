@@ -30,7 +30,7 @@ public class EnemyController : MonoBehaviour
     float huntDistSqrd = 2500f;
     float curDistToPlayer;
     float deathAnimTime = 3f;
-    public int health = 25;
+    public int health = 50;
     bool dieOnce = false;
 
     // Start is called before the first frame update
@@ -38,12 +38,17 @@ public class EnemyController : MonoBehaviour
     {
         pawn = GetComponent<CharacterController>();
         agent = GetComponent<NavMeshAgent>();
-        agent.speed = 2;
+        agent.speed = 5;
 
         PlayerTargeting player = FindObjectOfType<PlayerTargeting>();
         navTarget = player.transform;
 
-        //fill legJoints in order of similarly moving legs
+        /*fill legJoints in order of similarly moving legs
+         * right vs left: side of the crab
+         * even vs odd: legs that move forward at the same time
+         * inner vs outer: joint close to body or far from body
+         * front vs back: front or back leg of the even/odd grouping (2 on each side)
+        */
         legJoints[0] = rightOddInnerFrontJoint;
         legJoints[1] = rightOddInnerBackJoint;
         legJoints[2] = leftEvenInnerFrontJoint;
@@ -79,6 +84,8 @@ public class EnemyController : MonoBehaviour
         if(health <= 0)
         {
             state = EnemyState.Death;
+            agent.destination = transform.position;
+            pointScript.enabled = false;
         }
         //move only if the player is within distance
         else if (navTarget && curDistToPlayer < huntDistSqrd)
@@ -112,6 +119,7 @@ public class EnemyController : MonoBehaviour
         switch(state)
         {
             case EnemyState.Idle:
+                agent.destination = transform.position;
                 AnimateIdle();
                 break;
             case EnemyState.Aiming:
@@ -223,14 +231,14 @@ public class EnemyController : MonoBehaviour
 
     void AnimateAttack()
     {
-        shootScript.shootTime += 5f;
+        shootScript.shootTime += 3f;
         shootScript.Shoot();
         shootScript.transform.localEulerAngles += new Vector3(-30, 0, 0);
     }
 
     void AnimateDeath()
     {
-        agent.baseOffset = AnimMath.Lerp(0.1f, 1, Mathf.Clamp((deathAnimTime - 2f), 0, 1));
+        agent.baseOffset = AnimMath.Lerp(0.5f, 1, Mathf.Clamp((deathAnimTime - 2f) * .7f, 0, 1));
 
         //flatten legs
         if (deathAnimTime >= 2f)
@@ -266,33 +274,83 @@ public class EnemyController : MonoBehaviour
                 for (int i = 0; i < 16; ++i)
                 {
                     Quaternion rot = legJoints[i].localRotation;
-                    Vector3 euler = legJoints[i].localRotation.eulerAngles;
-                    euler.x = AnimMath.Lerp(0, euler.x, Mathf.Clamp((deathAnimTime - 2f), 0, 1));
+                    //Vector3 euler = legJoints[i].localRotation.eulerAngles;
+                    //euler.x = AnimMath.Lerp(0, euler.x, Mathf.Clamp((deathAnimTime - 2f), 0, 1));
 
-                    rot.eulerAngles = euler;
+                    //rot.eulerAngles = euler;
+
+                    if(i % 4 < 2)//right leg
+                    {
+                        //inner joint
+                        if(i < 8)
+                        {
+                            rot = AnimMath.Lerp(rightInStart, rot, Mathf.Clamp((deathAnimTime - 2f), 0, 1));
+                        }
+                        else//outer joint
+                        {
+                            rot = AnimMath.Lerp(rightOutStart, rot, Mathf.Clamp((deathAnimTime - 2f), 0, 1));
+                        }
+                    }
+                    else//left leg
+                    {
+                        //inner joint
+                        if(i < 8)
+                        {
+                            rot = AnimMath.Lerp(leftInStart, rot, Mathf.Clamp((deathAnimTime - 2f), 0, 1));
+                        }
+                        else//outer joint
+                        {
+                            rot = AnimMath.Lerp(leftOutStart, rot, Mathf.Clamp((deathAnimTime - 2f), 0, 1));
+                        }
+                    }
                     legJoints[i].localRotation = rot;
                 }
             }
         }
         else//curl legs
         {
-            for(int i = 0; i < 16; ++i)
+            for (int i = 0; i < 16; ++i)
             {
                 Quaternion rot = legJoints[i].localRotation;
-                Vector3 euler = legJoints[i].localRotation.eulerAngles;
+                Quaternion rotTarget;
+                Vector3 euler;
 
-                /*if(euler.x < 0)
+                if (i % 4 < 2)//right leg
                 {
-                    euler.x += 360f;
-                    rot.eulerAngles = euler;
-                    legJoints[i].localRotation = rot;
-                }*/
-
-                //inner
-                if(i < 8) euler.x = AnimMath.Lerp(-50 + 360, euler.x, Mathf.Clamp((deathAnimTime - 1f), 0, 1));
-                else euler.x = AnimMath.Lerp(-120 + 360, euler.x, Mathf.Clamp((deathAnimTime - 1f), 0, 1));
-
-                rot.eulerAngles = euler;
+                    rotTarget = rightInStart;
+                    euler = rotTarget.eulerAngles;
+                    //inner joint
+                    if (i < 8)
+                    {
+                        euler.x = -60;
+                        rotTarget.eulerAngles = euler;
+                        rot = AnimMath.Lerp(rotTarget, rightInStart, Mathf.Clamp((deathAnimTime - 1f), 0, 1));
+                    }
+                    else//outer joint
+                    {
+                        euler.x = -120;
+                        rotTarget.eulerAngles = euler;
+                        rot = AnimMath.Lerp(rotTarget, rightOutStart, Mathf.Clamp((deathAnimTime - 1f), 0, 1));
+                    }
+                }
+                else//left leg
+                {
+                    rotTarget = leftInStart;
+                    euler = rotTarget.eulerAngles;
+                    //inner joint
+                    if (i < 8)
+                    {
+                        euler.x = -60;
+                        rotTarget.eulerAngles = euler;
+                        rot = AnimMath.Lerp(rotTarget, leftInStart, Mathf.Clamp((deathAnimTime - 1f), 0, 1));
+                    }
+                    else//outer joint
+                    {
+                        euler.x = -120;
+                        rotTarget.eulerAngles = euler;
+                        rot = AnimMath.Lerp(rotTarget, leftInStart, Mathf.Clamp((deathAnimTime - 1f), 0, 1));
+                    }
+                }
                 legJoints[i].localRotation = rot;
             }
         }
